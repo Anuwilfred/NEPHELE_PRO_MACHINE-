@@ -3,9 +3,15 @@
 // Polls every ENABLED row in the corvina_connections table -- each one is a
 // separate Corvina Cloud organization an admin connected from the app's
 // Settings screen (Devices -> add a connection). pg_cron calls this
-// function every 2 minutes; each call polls every connected organization in
-// a tight loop (every ~7s) for up to ~130s before returning (free-plan
-// wall-clock cap is 150s). Net effect: data lands every 7-10 seconds.
+// function every 2 minutes. Each invocation does ONE fast pass over every
+// connected organization's devices and tags, fetching tag values with
+// bounded concurrency so a single pass finishes in a few seconds instead of
+// minutes -- this matters because pg_net (the thing pg_cron uses to call
+// HTTP endpoints) only waits up to ~5 seconds for a response on the hosted
+// platform, no matter what timeout is requested. A function that takes
+// minutes to answer just looks like a dropped connection to pg_net, even if
+// it keeps working in the background -- so speed, not a long-lived
+// invocation, is what makes data land reliably every cycle.
 //
 // Device/tag ids are namespaced with the connection's id ("<connId>::...")
 // so two different organizations' devices never collide, even if Corvina
@@ -16,8 +22,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-const POLL_INTERVAL_MS = 7000;
-const MAX_WALL_CLOCK_MS = 130000;
+// How many Corvina API calls we allow in flight at once. High enough to
+// make a real difference on wall-clock time, low enough not to hammer
+// Corvina or trip its own rate limiting.
+const TAG_FETCH_CONCURRENCY = 12;
+const DEVICE_CONCURRENCY = 4;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -33,6 +42,23 @@ async function corvinaGet(conn, path, params) {
     throw new Error("Corvina " + path + " -> HTTP " + res.status + ": " + (await res.text()).slice(0, 300));
   }
   return res.json();
+}
+
+// Runs fn(item) over items with at most `limit` calls in flight at once.
+async function mapWithConcurrency(items, limit, fn) {
+  let index = 0;
+  async function worker() {
+    while (index < items.length) {
+      const current = index++;
+      try {
+        await fn(items[current], current);
+      } catch (_err) {
+        // individual item failures are handled/logged by fn itself
+      }
+    }
+  }
+  const workers = Array.from({ length: Math.min(limit, items.length) }, () => worker());
+  await Promise.all(workers);
 }
 
 async function listDevices(conn) {
@@ -127,7 +153,7 @@ async function pollOneDevice(conn, device) {
   const deviceId = namespacedDeviceId(conn, rawDeviceId);
   const tags = await listTags(conn, device);
 
-  for (const tag of tags) {
+  await mapWithConcurrency(tags, TAG_FETCH_CONCURRENCY, async (tag) => {
     const id = tagId(deviceId, tag.path);
     await upsertTag({
       id,
@@ -149,14 +175,14 @@ async function pollOneDevice(conn, device) {
     } catch (err) {
       console.warn("[" + conn.name + "] Tag " + tag.path + " on " + deviceName + " failed:", err.message);
     }
-  }
+  });
   return tags.length;
 }
 
 async function pollOnceForConnection(conn) {
   const devices = await listDevices(conn);
 
-  for (const device of devices) {
+  await mapWithConcurrency(devices, DEVICE_CONCURRENCY, async (device) => {
     const geo = device.attributes?.geoLocation;
     const hasFix = Array.isArray(geo) && geo.length >= 2 && !(Math.abs(geo[0]) < 0.01 && Math.abs(geo[1]) < 0.01);
     await upsertDevice({
@@ -166,16 +192,16 @@ async function pollOnceForConnection(conn) {
       geoLat: hasFix ? geo[0] : null,
       geoLng: hasFix ? geo[1] : null,
     });
-  }
+  });
 
   let totalTags = 0;
-  for (const device of devices) {
+  await mapWithConcurrency(devices, DEVICE_CONCURRENCY, async (device) => {
     try {
       totalTags += await pollOneDevice(conn, device);
     } catch (err) {
       console.warn("[" + conn.name + "] Skipping device " + device.label + ":", err.message);
     }
-  }
+  });
   console.log("[" + new Date().toISOString() + "] [" + conn.name + "] polled " + devices.length + " device(s), " + totalTags + " tag(s)");
 }
 
@@ -192,30 +218,24 @@ async function pollOnce() {
     console.log("No enabled Corvina connections yet -- add one from the app's Settings screen.");
     return;
   }
-  for (const conn of connections) {
+  await mapWithConcurrency(connections, 3, async (conn) => {
     try {
       await pollOnceForConnection(conn);
     } catch (err) {
       console.warn("[" + conn.name + "] connection failed this cycle:", err.message);
     }
-  }
+  });
 }
 
-Deno.serve(async (_req) => {
-  const deadline = Date.now() + MAX_WALL_CLOCK_MS;
-  let cycles = 0;
-  while (Date.now() < deadline) {
-    try {
-      await pollOnce();
-      cycles++;
-    } catch (err) {
-      console.error("Poll failed:", err.message);
-    }
-    const remaining = deadline - Date.now();
-    if (remaining <= 0) break;
-    await new Promise((resolve) => setTimeout(resolve, Math.min(POLL_INTERVAL_MS, remaining)));
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey" } });
   }
-  return new Response(JSON.stringify({ ok: true, cycles }), {
-    headers: { "Content-Type": "application/json" },
-  });
+  try {
+    await pollOnce();
+    return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+  } catch (err) {
+    console.error("Poll failed:", err.message);
+    return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { "Content-Type": "application/json" } });
+  }
 });
