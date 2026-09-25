@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Accept Invite — Vessel Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #201f28;
+    --panel: #2b2a38;
+    --border: #3d3c4d;
+    --text: #f2f1fa;
+    --muted: #9b99ab;
+    --accent: #7b7ff2;
+    --accent-strong: #9a9dff;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    width: 320px;
+  }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  p.sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; margin-top: 14px; }
+  input {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  button {
+    width: 100%;
+    margin-top: 20px;
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    padding: 9px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  button:hover { background: var(--accent-strong); }
+  button:disabled { opacity: 0.5; cursor: default; }
+  .error { color: #e05a5a; font-size: 12px; margin-top: 12px; min-height: 14px; }
+  a { color: var(--accent-strong); }
+</style>
+</head>
+<body>
+  <div class="card" id="card">Loading…</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Same two values as index.html -- fill in once.
+  const SUPABASE_URL = "__SUPABASE_URL__";
+  const SUPABASE_ANON_KEY = "__SUPABASE_ANON_KEY__";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const card = document.getElementById("card");
+
+  // Clicking the email link Supabase sends lands here with the invite's
+  // token in the URL -- supabase-js reads it automatically on load
+  // (detectSessionInUrl, on by default) and turns it into a real, signed-in
+  // session. So by the time this runs, getSession() already has it if the
+  // link was valid; no server round-trip of our own needed to check it.
+  async function init() {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      card.innerHTML = '<p class="sub">This invite link is invalid or has expired.</p><p><a href="/">Go to sign in</a></p>';
+      return;
+    }
+
+    card.innerHTML = `
+      <h1>Welcome</h1>
+      <p class="sub">${session.user.email} — set a password to finish creating your account.</p>
+      <form id="accept-form">
+        <label for="password">Password</label>
+        <input type="password" id="password" minlength="8" required />
+        <label for="confirm">Confirm password</label>
+        <input type="password" id="confirm" minlength="8" required />
+        <button type="submit">Create account</button>
+        <div class="error" id="error"></div>
+      </form>
+    `;
+
+    document.getElementById("accept-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const password = document.getElementById("password").value;
+      const confirm = document.getElementById("confirm").value;
+      const errorEl = document.getElementById("error");
+      errorEl.textContent = "";
+      if (password !== confirm) {
+        errorEl.textContent = "Passwords don't match.";
+        return;
+      }
+      const { error } = await sb.auth.updateUser({ password });
+      if (error) {
+        errorEl.textContent = error.message || "Could not set your password.";
+        return;
+      }
+      location.href = "/";
+    });
+  }
+
+  init();
+</script>
+</body>
+</html>

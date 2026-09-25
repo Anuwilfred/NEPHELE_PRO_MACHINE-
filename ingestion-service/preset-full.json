@@ -1,0 +1,1412 @@
+{
+  "value": {
+    "realmId": "exorin",
+    "modelId": "gTjDeNfqZT",
+    "json": {
+      "UUID": "tij3jhop3hm9wnfa",
+      "type": "object",
+      "instanceOf": "Tristar:1.2.1",
+      "properties": {
+        "Application/DCDC/DC1301_st_dcu_p": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "label": "DC1301-POWER",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "type": "onchange",
+                "level": 0,
+                "mode": "",
+                "minIntervalMs": 1000,
+                "changeMask": "value|timestamp"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DCDC/DC1301_st_dcu_p"
+          }
+        },
+        "Application/DCDC/DC1301_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DCDC/DC1301_st_sys_temp_junc_max"
+          }
+        },
+        "Application/DCDC/DC1302_st_dcu_p": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DCDC/DC1302_st_dcu_p"
+          }
+        },
+        "Application/DCDC/DC1302_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DCDC/DC1302_st_sys_temp_junc_max"
+          }
+        },
+        "Application/DCDC/DC2301_st_dcu_p": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DCDC/DC2301_st_dcu_p"
+          }
+        },
+        "Application/DCDC/DC2301_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DCDC/DC2301_st_sys_temp_junc_max"
+          }
+        },
+        "Application/DCDC/DC2302_st_dcu_p": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DCDC/DC2302_st_dcu_p"
+          }
+        },
+        "Application/DCDC/DC2302_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DCDC/DC2302_st_sys_temp_junc_max"
+          }
+        },
+        "Application/DG/DG140n_st_sys_temp_ext_1": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG140n_st_sys_temp_ext_1"
+          }
+        },
+        "Application/DG/DG140n_st_sys_temp_ext_2": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG140n_st_sys_temp_ext_2"
+          }
+        },
+        "Application/DG/DG140n_st_sys_temp_ext_3": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG140n_st_sys_temp_ext_3"
+          }
+        },
+        "Application/DG/DG240n_st_sys_temp_ext_1": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG240n_st_sys_temp_ext_1"
+          }
+        },
+        "Application/DG/DG240n_st_sys_temp_ext_2": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG240n_st_sys_temp_ext_2"
+          }
+        },
+        "Application/DG/DG240n_st_sys_temp_ext_3": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG240n_st_sys_temp_ext_3"
+          }
+        },
+        "Application/DG/DG1401_st_mot_p_axis": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG1401_st_mot_p_axis"
+          }
+        },
+        "Application/DG/DG1401_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG1401_st_sys_temp_junc_max"
+          }
+        },
+        "Application/DG/DG1402_st_mot_p_axis": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG1402_st_mot_p_axis"
+          }
+        },
+        "Application/DG/DG1402_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG1402_st_sys_temp_junc_max"
+          }
+        },
+        "Application/DG/DG2401_st_mot_p_axis": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG2401_st_mot_p_axis"
+          }
+        },
+        "Application/DG/DG2401_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG2401_st_sys_temp_junc_max"
+          }
+        },
+        "Application/DG/DG2402_st_mot_p_axis": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG2402_st_mot_p_axis"
+          }
+        },
+        "Application/DG/DG2402_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/DG/DG2402_st_sys_temp_junc_max"
+          }
+        },
+        "Application/ESS/MBMU_Max_cell_t_1301_0": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/ESS/MBMU_Max_cell_t_1301[0]"
+          }
+        },
+        "Application/ESS/MBMU_Max_cell_t_1302_0": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/ESS/MBMU_Max_cell_t_1302[0]"
+          }
+        },
+        "Application/ESS/MBMU_Max_cell_t_2301_0": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/ESS/MBMU_Max_cell_t_2301[0]"
+          }
+        },
+        "Application/ESS/MBMU_Max_cell_t_2302_0": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/ESS/MBMU_Max_cell_t_2302[0]"
+          }
+        },
+        "Application/ESS/MBMU_SOC_1301": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/ESS/MBMU_SOC_1301"
+          }
+        },
+        "Application/ESS/MBMU_SOC_1302": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/ESS/MBMU_SOC_1302"
+          }
+        },
+        "Application/ESS/MBMU_SOC_2301": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/ESS/MBMU_SOC_2301"
+          }
+        },
+        "Application/ESS/MBMU_SOC_2302": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/ESS/MBMU_SOC_2302"
+          }
+        },
+        "Application/HOTEL/HT1101_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/HOTEL/HT1101_st_sys_temp_junc_max"
+          }
+        },
+        "Application/HOTEL/HT1101_st_ug_p": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/HOTEL/HT1101_st_ug_p"
+          }
+        },
+        "Application/HOTEL/HT2101_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/HOTEL/HT2101_st_sys_temp_junc_max"
+          }
+        },
+        "Application/HOTEL/HT2101_st_ug_p": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/HOTEL/HT2101_st_ug_p"
+          }
+        },
+        "Application/MC/MC120n_st_mot_i_ac_rms": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC120n_st_mot_i_ac_rms"
+          }
+        },
+        "Application/MC/MC120n_st_mot_n": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC120n_st_mot_n"
+          }
+        },
+        "Application/MC/MC120n_st_mot_p_axis": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC120n_st_mot_p_axis"
+          }
+        },
+        "Application/MC/MC120n_st_mot_t": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC120n_st_mot_t"
+          }
+        },
+        "Application/MC/MC120n_st_sys_temp_ext_1": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC120n_st_sys_temp_ext_1"
+          }
+        },
+        "Application/MC/MC120n_st_sys_temp_ext_2": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC120n_st_sys_temp_ext_2"
+          }
+        },
+        "Application/MC/MC120n_st_sys_temp_ext_3": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC120n_st_sys_temp_ext_3"
+          }
+        },
+        "Application/MC/MC220n_st_mot_i_ac_rms": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC220n_st_mot_i_ac_rms"
+          }
+        },
+        "Application/MC/MC220n_st_mot_n": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC220n_st_mot_n"
+          }
+        },
+        "Application/MC/MC220n_st_mot_p_axis": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC220n_st_mot_p_axis"
+          }
+        },
+        "Application/MC/MC220n_st_mot_t": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC220n_st_mot_t"
+          }
+        },
+        "Application/MC/MC220n_st_sys_temp_ext_1": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC220n_st_sys_temp_ext_1"
+          }
+        },
+        "Application/MC/MC220n_st_sys_temp_ext_2": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC220n_st_sys_temp_ext_2"
+          }
+        },
+        "Application/MC/MC220n_st_sys_temp_ext_3": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC220n_st_sys_temp_ext_3"
+          }
+        },
+        "Application/MC/MC1201_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC1201_st_sys_temp_junc_max"
+          }
+        },
+        "Application/MC/MC1202_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC1202_st_sys_temp_junc_max"
+          }
+        },
+        "Application/MC/MC1203_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC1203_st_sys_temp_junc_max"
+          }
+        },
+        "Application/MC/MC1204_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC1204_st_sys_temp_junc_max"
+          }
+        },
+        "Application/MC/MC2201_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC2201_st_sys_temp_junc_max"
+          }
+        },
+        "Application/MC/MC2202_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC2202_st_sys_temp_junc_max"
+          }
+        },
+        "Application/MC/MC2203_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC2203_st_sys_temp_junc_max"
+          }
+        },
+        "Application/MC/MC2204_st_sys_temp_junc_max": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/MC/MC2204_st_sys_temp_junc_max"
+          }
+        },
+        "Application/PORT/DG_Cool_temp": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/PORT/DG_Cool_temp"
+          }
+        },
+        "Application/PORT/DG_Oil_press": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/PORT/DG_Oil_press"
+          }
+        },
+        "Application/PORT/HWO_AI_Out_G4_0": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/PORT/HWO_AI_Out_G4[0]"
+          }
+        },
+        "Application/PORT/HWO_AI_Out_G20_0": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/PORT/HWO_AI_Out_G20[0]"
+          }
+        },
+        "Application/STBD/DG_Cool_temp": {
+          "tags": [],
+          "type": "integer",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/STBD/DG_Cool_temp"
+          }
+        },
+        "Application/STBD/DG_Oil_press": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/STBD/DG_Oil_press"
+          }
+        },
+        "Application/STBD/HWO_AI_Out_G4_0": {
+          "tags": [],
+          "type": "double",
+          "version": "1.1.0",
+          "mode": "R",
+          "historyPolicy": {
+            "enabled": true
+          },
+          "sendPolicy": {
+            "triggers": [
+              {
+                "changeMask": "value|timestamp",
+                "minIntervalMs": 1000,
+                "skipFirstNChanges": 0,
+                "type": "onchange"
+              }
+            ]
+          },
+          "datalink": {
+            "source": "Application/STBD/HWO_AI_Out_G4[0]"
+          }
+        }
+      },
+      "label": "HYBRID",
+      "unit": "",
+      "description": "",
+      "tags": []
+    },
+    "name": "Hybrid",
+    "nameRaw": "Hybrid",
+    "deleted": false,
+    "orgResourceId": "exorin.technologyventure",
+    "creationDate": 1789458570335,
+    "updatedAt": 1789458570335,
+    "id": "gyMbYgl39h"
+  }
+}

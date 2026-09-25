@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Vessel Dashboard</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root[data-theme="dark"] {
+    --bg: #201f28;
+    --rail: #1a1922;
+    --panel: #2b2a38;
+    --panel-hover: #34334200;
+    --border: #3d3c4d;
+    --text: #f2f1fa;
+    --muted: #9b99ab;
+    --accent: #7b7ff2;
+    --accent-strong: #9a9dff;
+    --ok: #3fd67f;
+    --off: #5a5870;
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f5fb;
+    --rail: #eceaf7;
+    --panel: #ffffff;
+    --panel-hover: #ffffff00;
+    --border: #dedbee;
+    --text: #201f28;
+    --muted: #66647a;
+    --accent: #5b5fc7;
+    --accent-strong: #464ab0;
+    --ok: #1e9b56;
+    --off: #b7b4c9;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+  }
+  .app-shell { display: flex; height: 100vh; }
+
+  /* --- Left icon rail (Teams-style) --- */
+  .rail {
+    width: 72px;
+    flex-shrink: 0;
+    background: var(--rail);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 0;
+    border-right: 1px solid var(--border);
+  }
+  .rail-btn {
+    width: 48px;
+    height: 48px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--muted);
+    cursor: pointer;
+    margin-bottom: 8px;
+    background: none;
+    border: none;
+    position: relative;
+  }
+  .rail-btn svg { width: 22px; height: 22px; }
+  .rail-btn:hover { background: var(--border); color: var(--text); }
+  .rail-btn.active { color: var(--accent-strong); background: var(--border); }
+  .rail-btn.active::before {
+    content: "";
+    position: absolute;
+    left: -16px;
+    top: 8px;
+    bottom: 8px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--accent-strong);
+  }
+  .rail-btn .label { font-size: 10px; margin-top: 2px; }
+  .rail-spacer { flex: 1; }
+
+  /* --- Content area --- */
+  .content-area { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  header {
+    padding: 16px 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  header h1 { font-size: 17px; margin: 0; font-weight: 600; }
+  header .status { color: var(--muted); font-size: 13px; }
+  header .spacer { flex: 1; }
+  .theme-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+  .theme-toggle:hover { border-color: var(--accent); }
+  .theme-toggle svg { width: 17px; height: 17px; }
+
+  main { flex: 1; padding: 20px 24px; overflow: auto; }
+
+  button.back {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+  button.back:hover { border-color: var(--accent); color: var(--accent-strong); }
+
+  /* --- Devices tile grid --- */
+  .device-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 14px;
+  }
+  .device-tile {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.1s;
+    min-width: 0;
+  }
+  .device-tile:hover { border-color: var(--accent); transform: translateY(-1px); }
+  .device-tile .name {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 10px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    line-height: 1.3;
+  }
+  .status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .status-dot.online { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  .status-dot.offline { background: var(--off); }
+  .device-tile .status-label {
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .device-tile .meta {
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .empty-state { color: var(--muted); font-size: 14px; padding: 40px 0; text-align: center; }
+
+  /* --- Map view --- */
+  #map { width: 100%; height: 100%; border-radius: 10px; border: 1px solid var(--border); }
+  .map-wrap { height: calc(100vh - 130px); }
+  .leaflet-popup-content-wrapper { background: var(--panel); color: var(--text); }
+  .leaflet-popup-tip { background: var(--panel); }
+  .map-popup .name { font-weight: 600; margin-bottom: 4px; }
+  .map-popup .status { font-size: 12px; color: var(--muted); margin-bottom: 6px; }
+  .map-popup a { color: var(--accent-strong); font-size: 12px; text-decoration: none; }
+  .map-pin { filter: drop-shadow(0 1px 2px rgba(0,0,0,0.45)); }
+  .basemap-control {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.35);
+  }
+  .basemap-control select {
+    border: none;
+    background: transparent;
+    color: var(--text);
+    font-size: 12px;
+    padding: 7px 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: auto;
+  }
+  .map-fit-btn {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.35);
+    margin-top: 6px;
+  }
+  .map-fit-btn:hover { border-color: var(--accent); }
+  .map-popup a:hover { text-decoration: underline; }
+
+  /* --- Login screen --- */
+  .login-screen {
+    display: none;
+    height: 100vh;
+    align-items: center;
+    justify-content: center;
+  }
+  .login-card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    width: 320px;
+  }
+  .login-card h1 { font-size: 18px; margin: 0 0 4px; }
+  .login-card p.sub { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .login-card label {
+    display: block;
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 4px;
+    margin-top: 14px;
+  }
+  .login-card input {
+    width: 100%;
+    padding: 8px 10px;
+  }
+  .login-card button.primary {
+    width: 100%;
+    margin-top: 20px;
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    padding: 9px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  .login-card button.primary:hover { background: var(--accent-strong); }
+  .login-error {
+    color: #e05a5a;
+    font-size: 12px;
+    margin-top: 12px;
+    min-height: 14px;
+  }
+  .login-note { color: var(--muted); font-size: 12px; margin-top: 16px; }
+
+  /* --- Manage users (admin) --- */
+  .role-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .role-badge.admin { background: rgba(123,127,242,0.18); color: var(--accent-strong); }
+  .role-badge.viewer { background: var(--border); color: var(--muted); }
+  .invite-form {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 20px;
+  }
+  .invite-form .field { flex: 1; }
+  .invite-form label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  .invite-form select { width: auto; padding: 8px 10px; }
+  button.primary-sm {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    padding: 8px 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  button.primary-sm:hover { background: var(--accent-strong); }
+  button.danger-sm {
+    background: none;
+    border: 1px solid var(--border);
+    color: #e05a5a;
+    padding: 5px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  button.danger-sm:hover { border-color: #e05a5a; }
+  .section-heading {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin: 24px 0 10px;
+  }
+  .section-heading:first-child { margin-top: 0; }
+  .invite-link-box {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 12px;
+    margin-bottom: 16px;
+    word-break: break-all;
+  }
+
+  /* --- Tag table (device detail) --- */
+  .toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .toolbar input[type="text"] {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 6px 10px;
+    border-radius: 6px;
+    width: 240px;
+  }
+  #count { color: var(--muted); font-size: 13px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  th, td {
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    font-size: 13px;
+    text-align: left;
+  }
+  th { color: var(--muted); font-weight: 600; }
+  tr:last-child td { border-bottom: none; }
+  input, select {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 4px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    width: 100%;
+  }
+  .num-col input { width: 70px; }
+  .value-cell { font-variant-numeric: tabular-nums; }
+  button.save {
+    background: var(--accent);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+  }
+  button.save:disabled { opacity: 0.5; cursor: default; }
+  button.save.dirty { background: #d99a2b; }
+</style>
+</head>
+<body>
+
+<div class="login-screen" id="login-screen">
+  <div class="login-card">
+    <h1>Vessel Dashboard</h1>
+    <p class="sub">Sign in to continue</p>
+    <form id="login-form">
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" autocomplete="username" required />
+      <label for="login-password">Password</label>
+      <input type="password" id="login-password" autocomplete="current-password" required />
+      <button type="submit" class="primary">Sign in</button>
+      <div class="login-error" id="login-error"></div>
+    </form>
+  </div>
+</div>
+
+<div class="login-screen" id="setup-screen">
+  <div class="login-card">
+    <h1>Welcome</h1>
+    <p class="sub">This is a brand new install — create the admin account. You'll use this to log in and invite everyone else.</p>
+    <form id="setup-form">
+      <label for="setup-email">Your email</label>
+      <input type="email" id="setup-email" autocomplete="username" required />
+      <label for="setup-password">Password</label>
+      <input type="password" id="setup-password" autocomplete="new-password" minlength="8" required />
+      <label for="setup-password-confirm">Confirm password</label>
+      <input type="password" id="setup-password-confirm" autocomplete="new-password" minlength="8" required />
+      <button type="submit" class="primary">Create admin account</button>
+      <div class="login-error" id="setup-error"></div>
+    </form>
+  </div>
+</div>
+
+<div class="app-shell" id="app-shell" style="display:none;">
+  <nav class="rail">
+    <button class="rail-btn" id="nav-devices" title="Devices">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+    </button>
+    <button class="rail-btn" id="nav-map" title="Map">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-6.5-7-11.5A7 7 0 0 1 19 9.5C19 14.5 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>
+    </button>
+    <button class="rail-btn" id="nav-users" title="Manage users" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </button>
+    <div class="rail-spacer"></div>
+  </nav>
+
+  <div class="content-area">
+    <header>
+      <h1 id="page-title">Vessel Dashboard</h1>
+      <span class="status" id="status">loading&hellip;</span>
+      <div class="spacer"></div>
+      <span class="status" id="whoami"></span>
+      <button class="theme-toggle" id="logout-btn" title="Log out">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+      </button>
+      <button class="theme-toggle" id="theme-toggle" title="Toggle dark/light mode"></button>
+    </header>
+    <main id="app"></main>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+  // Fill these in once (Project Settings -> API in your Supabase dashboard).
+  // The anon key is safe to ship in a public page -- it can only do what
+  // Row Level Security allows, which is why every table has a policy.
+  const SUPABASE_URL = "__SUPABASE_URL__";
+  const SUPABASE_ANON_KEY = "__SUPABASE_ANON_KEY__";
+  const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  // --- Theme ------------------------------------------------------------
+  const SUN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  const MOON_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/></svg>';
+
+  function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+    document.getElementById("theme-toggle").innerHTML = theme === "dark" ? SUN_ICON : MOON_ICON;
+    try { localStorage.setItem("vd-theme", theme); } catch (e) {}
+  }
+  function currentTheme() {
+    return document.documentElement.getAttribute("data-theme") || "dark";
+  }
+  (function initTheme() {
+    let saved = "dark";
+    try { saved = localStorage.getItem("vd-theme") || "dark"; } catch (e) {}
+    applyTheme(saved);
+  })();
+  document.getElementById("theme-toggle").addEventListener("click", () => {
+    applyTheme(currentTheme() === "dark" ? "light" : "dark");
+  });
+
+  // --- Auth ---------------------------------------------------------------
+  let currentUser = null; // { id, email, role }
+  let refreshTimer = null;
+  let appStarted = false;
+
+  // A signed-in Supabase session only proves WHO someone is -- their role
+  // (admin/viewer), or whether they still have any access at all, lives in
+  // the user_roles table. No row there = no longer allowed in, even with a
+  // technically-valid session (see has_role() in the SQL migration).
+  async function checkAuth() {
+    try {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { currentUser = null; return false; }
+      const { data, error } = await sb
+        .from("user_roles")
+        .select("id, email, role")
+        .eq("id", session.user.id)
+        .maybeSingle();
+      if (error || !data) { currentUser = null; return false; }
+      currentUser = data;
+      return true;
+    } catch (e) {
+      currentUser = null;
+      return false;
+    }
+  }
+
+  function showLogin(message) {
+    if (refreshTimer) { clearInterval(refreshTimer); refreshTimer = null; }
+    appStarted = false;
+    document.getElementById("app-shell").style.display = "none";
+    document.getElementById("setup-screen").style.display = "none";
+    document.getElementById("login-screen").style.display = "flex";
+    document.getElementById("login-error").textContent = message || "";
+    document.getElementById("login-password").value = "";
+  }
+
+  function showSetup() {
+    document.getElementById("app-shell").style.display = "none";
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("setup-screen").style.display = "flex";
+  }
+
+  function showApp() {
+    document.getElementById("login-screen").style.display = "none";
+    document.getElementById("setup-screen").style.display = "none";
+    document.getElementById("app-shell").style.display = "flex";
+    document.getElementById("whoami").textContent = currentUser.email + (currentUser.role === "admin" ? " (admin)" : "");
+    document.getElementById("nav-users").style.display = currentUser.role === "admin" ? "flex" : "none";
+    if (!appStarted) {
+      appStarted = true;
+      goToDevices();
+      refreshTimer = setInterval(refresh, 5000);
+    }
+  }
+
+  document.getElementById("login-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+    document.getElementById("login-error").textContent = "";
+    const { error } = await sb.auth.signInWithPassword({ email, password });
+    if (error) {
+      document.getElementById("login-error").textContent = error.message || "Sign in failed.";
+      return;
+    }
+    const ok = await checkAuth();
+    if (ok) showApp();
+    else document.getElementById("login-error").textContent = "That account no longer has access.";
+  });
+
+  document.getElementById("setup-form").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("setup-email").value.trim();
+    const password = document.getElementById("setup-password").value;
+    const confirm = document.getElementById("setup-password-confirm").value;
+    const errorEl = document.getElementById("setup-error");
+    errorEl.textContent = "";
+    if (password !== confirm) {
+      errorEl.textContent = "Passwords don't match.";
+      return;
+    }
+    try {
+      const { data, error } = await sb.functions.invoke("bootstrap-admin", {
+        method: "POST",
+        body: { email, password },
+      });
+      if (error) {
+        errorEl.textContent = (data && data.message) || error.message || "Could not create the admin account.";
+        return;
+      }
+      // bootstrap-admin creates the account server-side, but doesn't sign
+      // this browser in -- do that now so a real session/cookie exists.
+      const { error: loginErr } = await sb.auth.signInWithPassword({ email, password });
+      if (loginErr) {
+        errorEl.textContent = "Account created -- please sign in.";
+        showLogin();
+        return;
+      }
+      await checkAuth();
+      showApp();
+    } catch (err) {
+      errorEl.textContent = "Could not reach Supabase.";
+    }
+  });
+
+  document.getElementById("logout-btn").addEventListener("click", async () => {
+    try { await sb.auth.signOut(); } catch (e) {}
+    currentUser = null;
+    showLogin();
+  });
+
+  // --- View state ---------------------------------------------------------
+  // view: "devices" | "map" | "tags"
+  let view = "devices";
+  let devices = [];
+  let tags = [];
+  let selectedDevice = null; // { id, name }
+  const dirty = {}; // tagId -> { field: value }
+  let leafletMap = null;
+
+  function setStatus(text) {
+    document.getElementById("status").textContent = text;
+  }
+  function setActiveRail(id) {
+    document.querySelectorAll(".rail-btn").forEach((b) => b.classList.remove("active"));
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.add("active");
+  }
+
+  function goToDevices() {
+    view = "devices";
+    selectedDevice = null;
+    document.getElementById("page-title").textContent = "Vessel Dashboard";
+    setActiveRail("nav-devices");
+    loadDevices();
+  }
+
+  function goToMap() {
+    view = "map";
+    selectedDevice = null;
+    document.getElementById("page-title").textContent = "Live Map";
+    setActiveRail("nav-map");
+    loadDevices(true);
+  }
+
+  function goToDeviceTags(device) {
+    view = "tags";
+    selectedDevice = device;
+    document.getElementById("page-title").textContent = device.name + " — Tags";
+    setActiveRail(null);
+    loadTags(device.id);
+  }
+
+  function goToUsers() {
+    view = "users";
+    selectedDevice = null;
+    document.getElementById("page-title").textContent = "Manage Users";
+    setActiveRail("nav-users");
+    loadUsers();
+  }
+
+  document.getElementById("nav-devices").addEventListener("click", goToDevices);
+  document.getElementById("nav-map").addEventListener("click", goToMap);
+  document.getElementById("nav-users").addEventListener("click", goToUsers);
+
+  // --- Devices view ----------------------------------------------------
+  // tags(count) asks PostgREST to embed, per device, how many tags
+  // reference it -- same number the old `COUNT(t.id) ... GROUP BY` query
+  // gave us, just computed by Supabase instead of our own SQL.
+  async function fetchDevices() {
+    const { data, error } = await sb
+      .from("devices")
+      .select("id, name, online, last_seen_at, geo_lat, geo_lng, tags(count)")
+      .order("name");
+    if (error) {
+      if (error.code === "PGRST301" || error.message?.includes("JWT")) {
+        showLogin("Your session ended — please sign in again.");
+        return null;
+      }
+      throw error;
+    }
+    return data.map((d) => ({ ...d, tag_count: d.tags?.[0]?.count ?? 0 }));
+  }
+
+  async function loadDevices(forMap) {
+    setStatus("loading…");
+    try {
+      const fresh = await fetchDevices();
+      if (fresh === null) return;
+      devices = fresh;
+      const onlineCount = devices.filter((d) => d.online).length;
+      setStatus(`connected — ${devices.length} device(s), ${onlineCount} online`);
+      if (forMap) renderMap(); else renderDevices();
+    } catch (err) {
+      setStatus("failed to load: " + err.message);
+    }
+  }
+
+  function fmtAgo(t) {
+    if (!t) return "never";
+    const seconds = Math.floor((Date.now() - new Date(t).getTime()) / 1000);
+    if (seconds < 60) return seconds + "s ago";
+    if (seconds < 3600) return Math.floor(seconds / 60) + "m ago";
+    if (seconds < 86400) return Math.floor(seconds / 3600) + "h ago";
+    return Math.floor(seconds / 86400) + "d ago";
+  }
+
+  function renderDevices() {
+    const app = document.getElementById("app");
+    if (devices.length === 0) {
+      app.innerHTML = '<div class="empty-state">No devices yet — the ingestion service hasn’t reported any.</div>';
+      return;
+    }
+    app.innerHTML = `<div class="device-grid">${devices
+      .map(
+        (d) => `
+      <div class="device-tile" data-device-id="${d.id}">
+        <div class="name">${d.name}</div>
+        <div class="status-label">
+          <span class="status-dot ${d.online ? "online" : "offline"}"></span>
+          ${d.online ? "Online" : "Offline"}
+        </div>
+        <div class="meta">
+          <span>${d.tag_count} tag${d.tag_count === "1" ? "" : "s"}</span>
+          <span>seen ${fmtAgo(d.last_seen_at)}</span>
+        </div>
+      </div>`
+      )
+      .join("")}</div>`;
+
+    app.querySelectorAll(".device-tile").forEach((tile) => {
+      tile.addEventListener("click", () => {
+        const id = tile.dataset.deviceId;
+        const device = devices.find((d) => d.id === id);
+        if (device) goToDeviceTags(device);
+      });
+    });
+  }
+
+  // --- Map view ----------------------------------------------------------
+  // renderMap(): called only when NAVIGATING to the Map view (goToMap()).
+  // It (re)builds the container and the Leaflet instance from scratch --
+  // any previous instance is properly torn down first with .remove(), since
+  // navigating away (to Devices/Tags) replaces #app's innerHTML and detaches
+  // the old #map div, leaving the old Leaflet instance pointed at a dead
+  // element. Recreating it is what the old code skipped, which is what
+  // made the map blank out.
+  //
+  // updateMapMarkers(): called on every periodic refresh() tick while
+  // already ON the Map view. It only touches markers -- it never resets
+  // #app's innerHTML, never recreates the Leaflet instance, and (unless
+  // asked to fit) never touches pan/zoom -- so the 5-second auto-refresh
+  // can no longer detach the live map out from under itself, and no longer
+  // yanks the view back to "fit everything" while someone is zoomed in
+  // looking at one vessel.
+
+  // A handful of free, no-API-key basemaps -- Google Maps-style "map type"
+  // choices. Esri's World Street Map labels places in English worldwide
+  // (unlike the plain OpenStreetMap style, which labels in each place's
+  // local language/script -- that's why the Middle East/Africa view was
+  // showing Arabic/Amharic text). "Streets (local names)" keeps the old
+  // OSM look for anyone who wants it.
+  const BASEMAPS = {
+    streets_en: {
+      label: "Streets (English)",
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+      attribution: "Tiles &copy; Esri",
+      maxZoom: 19,
+    },
+    streets_local: {
+      label: "Streets (local names)",
+      url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      attribution: "&copy; OpenStreetMap contributors",
+      maxZoom: 19,
+    },
+    satellite: {
+      label: "Satellite",
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}",
+      attribution: "Tiles &copy; Esri",
+      maxZoom: 19,
+    },
+    light: {
+      label: "Light",
+      url: "https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+      attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+      maxZoom: 19,
+    },
+    dark: {
+      label: "Dark",
+      url: "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png",
+      attribution: "&copy; OpenStreetMap contributors &copy; CARTO",
+      maxZoom: 19,
+    },
+  };
+
+  let currentTileLayer = null;
+  let deviceMarkers = new Map(); // device id -> Leaflet marker, reused across refreshes
+
+  function currentBasemapKey() {
+    try { return localStorage.getItem("vd-basemap") || "streets_en"; } catch (e) { return "streets_en"; }
+  }
+
+  function setBasemap(key) {
+    const def = BASEMAPS[key] || BASEMAPS.streets_en;
+    if (currentTileLayer) leafletMap.removeLayer(currentTileLayer);
+    currentTileLayer = L.tileLayer(def.url, { maxZoom: def.maxZoom, attribution: def.attribution }).addTo(leafletMap);
+    try { localStorage.setItem("vd-basemap", key); } catch (e) {}
+  }
+
+  // A Google-Maps-style pin instead of a plain dot, colored by status.
+  function pinIcon(color) {
+    const svg = `<svg width="28" height="40" viewBox="0 0 28 40" xmlns="http://www.w3.org/2000/svg" class="map-pin">
+        <path d="M14 0C6.3 0 0 6.3 0 14c0 10.5 14 26 14 26s14-15.5 14-26C28 6.3 21.7 0 14 0z" fill="${color}"/>
+        <circle cx="14" cy="14" r="10.5" fill="${color}" stroke="#fff" stroke-width="2"/>
+        <circle cx="14" cy="14" r="4.5" fill="#fff"/>
+      </svg>`;
+    return L.divIcon({
+      className: "",
+      html: svg,
+      iconSize: [28, 40],
+      iconAnchor: [14, 40],
+      popupAnchor: [0, -36],
+    });
+  }
+
+  // Corvina reports [0, 0] for a device that has never gotten a GPS fix --
+  // that's "Null Island" in the Gulf of Guinea, not a real position, so a
+  // device sitting there on the map is a missing fix, not bad data to chase
+  // down. Treat it the same as "no location" instead of plotting it.
+  function isPlottable(d) {
+    if (d.geo_lat == null || d.geo_lng == null) return false;
+    return !(Math.abs(d.geo_lat) < 0.01 && Math.abs(d.geo_lng) < 0.01);
+  }
+
+  function addMapControls() {
+    const basemapControl = L.control({ position: "topright" });
+    basemapControl.onAdd = function () {
+      const div = L.DomUtil.create("div", "basemap-control");
+      const select = document.createElement("select");
+      select.title = "Map type";
+      Object.entries(BASEMAPS).forEach(([key, def]) => {
+        const opt = document.createElement("option");
+        opt.value = key;
+        opt.textContent = def.label;
+        if (key === currentBasemapKey()) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.addEventListener("change", () => setBasemap(select.value));
+      div.appendChild(select);
+      L.DomEvent.disableClickPropagation(div);
+      return div;
+    };
+    basemapControl.addTo(leafletMap);
+
+    const fitControl = L.control({ position: "topright" });
+    fitControl.onAdd = function () {
+      const div = L.DomUtil.create("div", "map-fit-btn");
+      div.title = "Fit all devices in view";
+      div.innerHTML = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 3H3v6M15 3h6v6M9 21H3v-6M15 21h6v-6"/></svg>';
+      div.addEventListener("click", () => updateMapMarkers({ fit: true }));
+      L.DomEvent.disableClickPropagation(div);
+      return div;
+    };
+    fitControl.addTo(leafletMap);
+  }
+
+  function renderMap() {
+    const app = document.getElementById("app");
+
+    if (leafletMap) {
+      leafletMap.remove(); // fully dispose of any previous instance/container
+      leafletMap = null;
+    }
+    deviceMarkers = new Map();
+    currentTileLayer = null;
+
+    app.innerHTML = '<div class="map-wrap"><div id="map"></div></div>';
+    leafletMap = L.map("map", { attributionControl: true });
+    setBasemap(currentBasemapKey());
+    addMapControls();
+
+    updateMapMarkers({ fit: true }); // initial load: fit to show every device once
+  }
+
+  // opts.fit: only true right after navigating in, or when the user
+  // explicitly clicks "Fit all devices" -- never on the periodic refresh,
+  // so panning/zooming to look at one vessel is never yanked back.
+  function updateMapMarkers(opts) {
+    if (!leafletMap) return;
+    const fit = !!(opts && opts.fit);
+    const located = devices.filter(isPlottable);
+    const seenIds = new Set();
+
+    located.forEach((d) => {
+      seenIds.add(d.id);
+      const color = d.online ? "#3fd67f" : "#9b99ab";
+      const latlng = [d.geo_lat, d.geo_lng];
+      let marker = deviceMarkers.get(d.id);
+      if (marker) {
+        marker.setLatLng(latlng);
+        marker.setIcon(pinIcon(color));
+      } else {
+        marker = L.marker(latlng, { icon: pinIcon(color) }).addTo(leafletMap);
+        deviceMarkers.set(d.id, marker);
+      }
+      marker.unbindPopup();
+      marker.bindPopup(`
+        <div class="map-popup">
+          <div class="name">${d.name}</div>
+          <div class="status">${d.online ? "Online" : "Offline"} · ${d.tag_count} tags</div>
+          <a href="#" data-device-id="${d.id}">View tags &rarr;</a>
+        </div>
+      `);
+      marker.off("popupopen");
+      marker.on("popupopen", () => {
+        const link = document.querySelector(`.map-popup a[data-device-id="${d.id}"]`);
+        if (link) {
+          link.addEventListener("click", (e) => {
+            e.preventDefault();
+            goToDeviceTags(d);
+          });
+        }
+      });
+    });
+
+    // Drop markers for devices that no longer have a valid fix.
+    deviceMarkers.forEach((marker, id) => {
+      if (!seenIds.has(id)) {
+        marker.remove();
+        deviceMarkers.delete(id);
+      }
+    });
+
+    if (located.length === 0) {
+      if (fit) leafletMap.setView([25.2, 55.3], 6); // fallback: UAE-ish region
+      return;
+    }
+
+    if (fit) {
+      const bounds = L.latLngBounds(located.map((d) => [d.geo_lat, d.geo_lng]));
+      leafletMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 12 });
+    }
+  }
+
+  // --- Tags view (per device) ------------------------------------------
+  // latest_values is embedded as a single nested object, not an array --
+  // tag_id is latest_values' PRIMARY KEY, so PostgREST knows it's one row
+  // per tag, at most, and returns it that way.
+  function flattenTagRow(t) {
+    const v = t.latest_values || {};
+    return {
+      ...t,
+      value_numeric: v.value_numeric ?? null,
+      value_text: v.value_text ?? null,
+      value_bool: v.value_bool ?? null,
+      updated_at: v.updated_at ?? null,
+    };
+  }
+
+  async function fetchTags(deviceId) {
+    const { data, error } = await sb
+      .from("tags")
+      .select(
+        "id, device_id, source_name, display_name, unit, data_type, min_value, max_value, alarm_low, alarm_high, latest_values(value_numeric, value_text, value_bool, updated_at)"
+      )
+      .eq("device_id", deviceId)
+      .order("source_name");
+    if (error) {
+      if (error.message?.includes("JWT")) { showLogin("Your session ended — please sign in again."); return null; }
+      throw error;
+    }
+    return data.map(flattenTagRow);
+  }
+
+  async function loadTags(deviceId) {
+    setStatus("loading…");
+    try {
+      const fresh = await fetchTags(deviceId);
+      if (fresh === null) return;
+      tags = fresh;
+      setStatus("connected — " + tags.length + " tags");
+      renderTags();
+    } catch (err) {
+      setStatus("failed to load: " + err.message);
+    }
+  }
+
+  function fmtValue(tag) {
+    if (tag.value_numeric !== null) return tag.value_numeric;
+    if (tag.value_bool !== null) return tag.value_bool ? "true" : "false";
+    if (tag.value_text !== null) return tag.value_text;
+    return "—";
+  }
+  function fmtTime(t) {
+    if (!t) return "—";
+    return new Date(t).toLocaleString();
+  }
+  function markDirty(tagId, field, value) {
+    dirty[tagId] = dirty[tagId] || {};
+    dirty[tagId][field] = value;
+    const btn = document.querySelector(`button[data-save="${tagId}"]`);
+    if (btn) { btn.disabled = false; btn.classList.add("dirty"); }
+  }
+  async function saveTag(tagId) {
+    const changes = dirty[tagId];
+    if (!changes) return;
+    const btn = document.querySelector(`button[data-save="${tagId}"]`);
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    try {
+      // RLS ("only admins can edit tags") enforces this server-side too --
+      // a non-admin's update would match zero rows and .select().single()
+      // below turns that into an error, same as the old 403 did.
+      const { data: updated, error } = await sb
+        .from("tags")
+        .update(changes)
+        .eq("id", tagId)
+        .select("id, display_name, unit, min_value, max_value, alarm_low, alarm_high")
+        .single();
+      if (error) throw error;
+      const idx = tags.findIndex((t) => t.id === tagId);
+      if (idx >= 0) tags[idx] = { ...tags[idx], ...updated };
+      delete dirty[tagId];
+      btn.textContent = "Saved";
+      btn.classList.remove("dirty");
+      setTimeout(() => { btn.textContent = "Save"; btn.disabled = true; }, 1200);
+    } catch (err) {
+      btn.disabled = false;
+      btn.textContent = "Save";
+      alert("Failed to save: " + err.message);
+    }
+  }
+  // Editable <input> for admins; plain text for everyone else -- viewers
+  // can see everything but the server rejects their PATCH attempts anyway
+  // (requireAdmin on that route), so hiding the input avoids a confusing
+  // "why didn't my edit save" moment.
+  function editableCell(tag, field, isNumeric) {
+    const val = tag[field] === null || tag[field] === undefined ? "" : tag[field];
+    if (currentUser?.role !== "admin") {
+      return `<span>${val === "" ? "—" : String(val)}</span>`;
+    }
+    return `<input type="${isNumeric ? "number" : "text"}" ${isNumeric ? 'step="any"' : ""}
+      value="${String(val).replace(/"/g, "&quot;")}"
+      data-tag="${tag.id}" data-field="${field}" />`;
+  }
+
+  function renderTags() {
+    const app = document.getElementById("app");
+    const isAdmin = currentUser?.role === "admin";
+    const filterValue = (document.getElementById("filter")?.value || "").trim().toLowerCase();
+    const filtered = tags.filter((t) => {
+      if (!filterValue) return true;
+      const hay = ((t.display_name || "") + " " + t.source_name).toLowerCase();
+      return hay.includes(filterValue);
+    });
+
+    const rowsHtml = filtered
+      .map(
+        (t) => `<tr>
+          <td title="${t.source_name}">${t.source_name}</td>
+          <td>${editableCell(t, "display_name", false)}</td>
+          <td>${editableCell(t, "unit", false)}</td>
+          <td class="value-cell">${fmtValue(t)}</td>
+          <td class="num-col">${editableCell(t, "min_value", true)}</td>
+          <td class="num-col">${editableCell(t, "max_value", true)}</td>
+          <td class="num-col">${editableCell(t, "alarm_low", true)}</td>
+          <td class="num-col">${editableCell(t, "alarm_high", true)}</td>
+          <td>${fmtTime(t.updated_at)}</td>
+          <td>${isAdmin ? `<button class="save" data-save="${t.id}" disabled>Save</button>` : ""}</td>
+        </tr>`
+      )
+      .join("");
+
+    app.innerHTML = `
+      <button class="back" id="back-btn">&larr; Back to devices</button>
+      <div class="toolbar">
+        <input type="text" id="filter" placeholder="Filter by name&hellip;" />
+        <span id="count">${filtered.length} / ${tags.length} shown</span>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Source tag</th><th>Display name</th><th>Unit</th><th>Current value</th>
+            <th class="num-col">Min</th><th class="num-col">Max</th>
+            <th class="num-col">Alarm low</th><th class="num-col">Alarm high</th>
+            <th>Updated</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="rows">${rowsHtml}</tbody>
+      </table>
+    `;
+
+    document.getElementById("back-btn").addEventListener("click", goToDevices);
+    document.getElementById("filter").addEventListener("input", renderTags);
+    app.querySelectorAll("input[data-tag]").forEach((input) => {
+      input.addEventListener("input", (e) => {
+        const { tag, field } = e.target.dataset;
+        let value = e.target.value;
+        if (e.target.type === "number") value = value === "" ? null : Number(value);
+        else if (value === "") value = null;
+        markDirty(tag, field, value);
+      });
+    });
+    app.querySelectorAll("button[data-save]").forEach((btn) => {
+      btn.addEventListener("click", () => saveTag(btn.dataset.save));
+    });
+  }
+
+  // --- Manage users (admin only) ------------------------------------------
+  let usersData = { users: [], pendingInvites: [] };
+
+  async function loadUsers() {
+    setStatus("loading…");
+    try {
+      const { data, error } = await sb.functions.invoke("list-users");
+      if (error) {
+        if (error.context?.status === 401) return showLogin("Your session ended — please sign in again.");
+        throw error;
+      }
+      usersData = data;
+      setStatus(`connected — ${usersData.users.length} user(s)`);
+      renderUsers();
+    } catch (err) {
+      setStatus("failed to load: " + err.message);
+    }
+  }
+
+  function renderUsers(banner) {
+    const app = document.getElementById("app");
+    const usersHtml = usersData.users
+      .map(
+        (u) => `<tr>
+          <td>${u.email}</td>
+          <td><span class="role-badge ${u.role}">${u.role}</span></td>
+          <td>${fmtTime(u.created_at)}</td>
+          <td>${
+            u.id === currentUser.id
+              ? ""
+              : `<button class="danger-sm" data-remove-user="${u.id}">Remove</button>`
+          }</td>
+        </tr>`
+      )
+      .join("");
+
+    const invitesHtml = usersData.pendingInvites
+      .map(
+        (inv) => `<tr>
+          <td>${inv.email}</td>
+          <td><span class="role-badge ${inv.role}">${inv.role}</span></td>
+          <td>${fmtTime(inv.invited_at)}</td>
+          <td>
+            <button class="danger-sm" data-resend-invite="${inv.email}" data-resend-role="${inv.role}">Resend</button>
+            <button class="danger-sm" data-cancel-invite="${inv.id}">Cancel</button>
+          </td>
+        </tr>`
+      )
+      .join("");
+
+    app.innerHTML = `
+      ${banner ? `<div class="invite-link-box">${banner}</div>` : ""}
+      <form class="invite-form" id="invite-form">
+        <div class="field">
+          <label for="invite-email">Invite by email</label>
+          <input type="email" id="invite-email" placeholder="name@company.com" required />
+        </div>
+        <div class="field" style="flex:0 0 140px;">
+          <label for="invite-role">Access level</label>
+          <select id="invite-role">
+            <option value="viewer">Viewer</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+        <button type="submit" class="primary-sm">Send invite</button>
+      </form>
+
+      <div class="section-heading">People with access</div>
+      <table>
+        <thead><tr><th>Email</th><th>Role</th><th>Joined</th><th></th></tr></thead>
+        <tbody>${usersHtml || `<tr><td colspan="4">No one yet.</td></tr>`}</tbody>
+      </table>
+
+      <div class="section-heading">Pending invites</div>
+      <table>
+        <thead><tr><th>Email</th><th>Role</th><th>Invited</th><th></th></tr></thead>
+        <tbody>${invitesHtml || `<tr><td colspan="4">None right now.</td></tr>`}</tbody>
+      </table>
+    `;
+
+    document.getElementById("invite-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("invite-email").value.trim();
+      const role = document.getElementById("invite-role").value;
+      const { data, error } = await sb.functions.invoke("invite-user", { body: { email, role } });
+      if (error) { alert((data && data.message) || error.message || "Could not send invite."); return; }
+      await loadUsers();
+      renderUsers(`Invite emailed to ${email}.`);
+    });
+
+    app.querySelectorAll("[data-remove-user]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Remove this person's access?")) return;
+        const { error } = await sb.functions.invoke("remove-user", { body: { userId: btn.dataset.removeUser } });
+        if (error) alert("Could not remove that person.");
+        loadUsers();
+      });
+    });
+    app.querySelectorAll("[data-cancel-invite]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const { error } = await sb.functions.invoke("remove-user", { body: { userId: btn.dataset.cancelInvite } });
+        if (error) alert("Could not cancel that invite.");
+        loadUsers();
+      });
+    });
+    app.querySelectorAll("[data-resend-invite]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const { error } = await sb.functions.invoke("invite-user", {
+          body: { email: btn.dataset.resendInvite, role: btn.dataset.resendRole },
+        });
+        if (error) alert("Could not resend that invite.");
+        else alert("Invite re-sent.");
+      });
+    });
+  }
+
+  // --- Periodic refresh, whichever view is active -----------------------
+  // Every 5s, straight against Supabase -- no server of ours in between,
+  // so this keeps working no matter where the browser is, with nothing
+  // that has to stay switched on for it to reach.
+  async function refresh() {
+    try {
+      if (view === "devices") {
+        const fresh = await fetchDevices();
+        if (fresh === null) return;
+        devices = fresh;
+        const onlineCount = devices.filter((d) => d.online).length;
+        setStatus(`connected — ${devices.length} device(s), ${onlineCount} online`);
+        renderDevices();
+      } else if (view === "map") {
+        const fresh = await fetchDevices();
+        if (fresh === null) return;
+        devices = fresh;
+        updateMapMarkers();
+      } else if (view === "tags" && selectedDevice) {
+        const fresh = await fetchTags(selectedDevice.id);
+        if (fresh === null) return;
+        tags = fresh.map((t) => (dirty[t.id] ? { ...t, ...dirty[t.id] } : t));
+        setStatus("connected — " + tags.length + " tags");
+        renderTags();
+      }
+    } catch (e) {
+      /* ignore transient refresh failures */
+    }
+  }
+
+  // --- Startup: brand new install gets the setup screen, otherwise check
+  // for an existing session and fall back to the login screen. -----------
+  (async function init() {
+    try {
+      const { data, error } = await sb.functions.invoke("bootstrap-admin", { method: "GET" });
+      if (!error && data && data.needsSetup) { showSetup(); return; }
+    } catch (e) {}
+
+    const loggedIn = await checkAuth();
+    if (loggedIn) showApp();
+    else showLogin();
+  })();
+</script>
+
+</body>
+</html>
