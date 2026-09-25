@@ -1,76 +1,47 @@
-# Vessel dashboard — Phase 1: Corvina connection
+# Vessel Dashboard
 
-This is the first phase of the build plan from the architecture doc: prove
-the pipe works — Corvina Cloud → Ingestion Service → Postgres → Backend API
-— before anything else (tag management UI, charts, drag-and-drop) gets built
-on top of it.
+A live dashboard for Corvina Cloud devices — device list, live map, per-device
+tag editing, and admin-managed logins — running entirely on Supabase's free
+tier (no server of your own has to stay switched on).
 
 ## What's here
 
 ```
-db/schema.sql          Postgres + TimescaleDB schema (devices, tags, latest
-                        values, tag history)
-ingestion-service/      Polls Corvina Cloud, writes into Postgres
-backend-api/             Reads Postgres, serves it as JSON (/health,
-                        /api/tags/latest)
-docker-compose.yml      Runs all three together for local testing
+index.html              The dashboard itself (devices, map, tags, users)
+accept-invite.html      Where an invited person sets their own password
+supabase/
+  migrations/0001_init.sql   Database tables, security rules, and grants
+  functions/                 Small server-side pieces that need a secret key:
+    ingest/                    polls Corvina Cloud and writes into the database
+    bootstrap-admin/           creates the very first admin account
+    invite-user/                admin: invite someone by email
+    remove-user/                admin: revoke someone's access
+    list-users/                 admin: see who has access / who's still pending
+  post-deploy.sql          One-time SQL to run after deploying (schedules
+                           the poller and the daily cleanup job)
 ```
 
-## What YOU need to fill in before this goes live
+## One-time setup
 
-This scaffold is wired and syntax-checked, but it can't talk to your real
-Corvina account yet without three things from you:
+1. Create a free Supabase project (supabase.com — no card needed).
+2. Run the SQL in `supabase/migrations/0001_init.sql` (Dashboard → SQL Editor).
+3. Set these secrets (`supabase secrets set ...` via the Supabase CLI, or the
+   Dashboard → Edge Functions → Secrets):
+   `CORVINA_API_BASE_URL`, `CORVINA_API_KEY`, `CORVINA_ORG_ID`,
+   `CORVINA_ORG_RESOURCE_ID`, `PUBLIC_ACCEPT_INVITE_URL` (where
+   `accept-invite.html` is hosted).
+4. Deploy the five functions in `supabase/functions/` with the Supabase CLI.
+5. Run `supabase/post-deploy.sql` once in the SQL Editor (fill in your
+   project ref and service_role key first, as its comments explain).
+6. In `index.html` and `accept-invite.html`, fill in `SUPABASE_URL` and
+   `SUPABASE_ANON_KEY` (Project Settings → API).
+7. Open `index.html` in a browser — first visit shows a "create the admin
+   account" screen. After that, the admin invites everyone else by email
+   from inside the app.
 
-1. **Your Corvina API base URL** and **credentials** — either a project API
-   key, or a client ID/secret — go into `ingestion-service/.env` (copy
-   `.env.example` to `.env` first).
-2. **The three endpoint paths**, also in that `.env` file:
-   `CORVINA_DEVICES_PATH`, `CORVINA_TAGS_PATH_TEMPLATE`,
-   `CORVINA_LIVE_VALUES_PATH_TEMPLATE`. The defaults are a reasonable guess
-   at REST conventions — they are **not** confirmed against Corvina's actual
-   API. Open your project's Swagger/OpenAPI reference in the Corvina
-   developer portal (or send me a screenshot of it, the way you described
-   the device/tag/live-data screens earlier) and I'll set these exactly.
-3. **The response shape** — once real data comes back from your account,
-   the field-mapping in `ingestion-service/src/index.js` (where it reads
-   `tag.id`, `tag.name`, `reading.tagId`, `reading.value`, etc.) may need a
-   small adjustment to match your account's actual JSON field names.
+## How it stays live
 
-Nothing else needs to change once those three are confirmed — the auth,
-polling loop, and database writes are already built for both of Corvina's
-auth modes (API key or OAuth2 client credentials).
-
-## Running it locally
-
-```bash
-cp ingestion-service/.env.example ingestion-service/.env   # then edit it
-cp backend-api/.env.example backend-api/.env
-docker compose up --build
-```
-
-Then check:
-
-```bash
-curl http://localhost:3000/health
-curl http://localhost:3000/api/tags/latest
-```
-
-The second call should return one row per tag once the ingestion service
-has completed its first poll — that's Phase 1 done.
-
-## Where this runs for real, for free
-
-Per the architecture doc: this whole `docker-compose.yml` maps directly
-onto one Oracle Cloud "Always Free" VM (it never sleeps, unlike most free
-hosting tiers, which matters because the ingestion service has to keep
-polling whether or not anyone's looking at a dashboard). The code lives in
-GitHub (free plan), which can deploy to that VM via GitHub Actions.
-
-## Next phases (not built yet)
-
-2. Tag management — a screen to rename/alias tags, set units and alarm
-   thresholds (edits the `tags` table already in place).
-3. Charts and widgets rendering against `/api/tags/latest` and history.
-4. Drag-and-drop dashboard canvas.
-5. Widget import/export as JSON templates.
-6. Sharing — email invites, roles, per-dashboard permissions.
+`supabase/functions/ingest` is called every 2 minutes by a scheduled job
+(`post-deploy.sql` sets this up) and polls Corvina in a loop for about two
+minutes each time, so data lands every 5-10 seconds — no computer of yours
+needs to stay switched on for it to keep working.
