@@ -3,15 +3,17 @@
 // Polls every ENABLED row in the corvina_connections table -- each one is a
 // separate Corvina Cloud organization an admin connected from the app's
 // Settings screen (Devices -> add a connection). pg_cron calls this
-// function every 2 minutes. Each invocation does ONE fast pass over every
-// connected organization's devices and tags, fetching tag values with
-// bounded concurrency so a single pass finishes in a few seconds instead of
-// minutes -- this matters because pg_net (the thing pg_cron uses to call
-// HTTP endpoints) only waits up to ~5 seconds for a response on the hosted
-// platform, no matter what timeout is requested. A function that takes
-// minutes to answer just looks like a dropped connection to pg_net, even if
-// it keeps working in the background -- so speed, not a long-lived
-// invocation, is what makes data land reliably every cycle.
+// function every 2 minutes, and each invocation does one pass over every
+// connected organization's devices and tags.
+//
+// Concurrency is intentionally modest (a handful of requests in flight at
+// once, not dozens): Corvina's own API rate-limits us with HTTP 429 when we
+// hammer it too hard, and a 429'd request is silently skipped for that
+// cycle -- which is what was causing most tags to sit on a stale value for
+// a long time (some tags simply never won the race to get a slot before
+// the rate limit kicked in). A 429 is now retried a couple of times with a
+// short backoff before giving up, and concurrency is capped low enough that
+// the rate limit shouldn't trigger in the first place.
 //
 // Device/tag ids are namespaced with the connection's id ("<connId>::...")
 // so two different organizations' devices never collide, even if Corvina
@@ -22,11 +24,11 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-// How many Corvina API calls we allow in flight at once. High enough to
-// make a real difference on wall-clock time, low enough not to hammer
-// Corvina or trip its own rate limiting.
-const TAG_FETCH_CONCURRENCY = 12;
-const DEVICE_CONCURRENCY = 4;
+// How many Corvina API calls we allow in flight at once, and across how
+// many devices at once. Kept low on purpose -- see note above.
+const TAG_FETCH_CONCURRENCY = 4;
+const DEVICE_CONCURRENCY = 2;
+const MAX_RETRIES_ON_RATE_LIMIT = 3;
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -34,14 +36,28 @@ function corvinaHeaders(conn) {
   return { "X-Api-Key": conn.api_key };
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 async function corvinaGet(conn, path, params) {
   const url = new URL(conn.api_base_url + path);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, String(v));
-  const res = await fetch(url, { headers: corvinaHeaders(conn) });
-  if (!res.ok) {
-    throw new Error("Corvina " + path + " -> HTTP " + res.status + ": " + (await res.text()).slice(0, 300));
+
+  for (let attempt = 0; attempt <= MAX_RETRIES_ON_RATE_LIMIT; attempt++) {
+    const res = await fetch(url, { headers: corvinaHeaders(conn) });
+    if (res.status === 429) {
+      if (attempt === MAX_RETRIES_ON_RATE_LIMIT) {
+        throw new Error("Corvina " + path + " -> HTTP 429 (rate limited, out of retries)");
+      }
+      await sleep(300 * (attempt + 1) + Math.floor(Math.random() * 200));
+      continue;
+    }
+    if (!res.ok) {
+      throw new Error("Corvina " + path + " -> HTTP " + res.status + ": " + (await res.text()).slice(0, 300));
+    }
+    return res.json();
   }
-  return res.json();
 }
 
 // Runs fn(item) over items with at most `limit` calls in flight at once.
@@ -139,12 +155,33 @@ async function writeValue(tid, value, timestampMs) {
   const text = !isNumeric && !isBool ? String(value) : null;
   const ts = new Date(timestampMs || Date.now()).toISOString();
 
+  // Corvina often keeps returning the same last-known sample between polls
+  // (the underlying device just hasn't produced a new reading yet). Skip
+  // the history insert when it's the exact same reading we already have on
+  // record, so tag_history only grows on a genuinely new sample instead of
+  // filling up with identical duplicate rows every 2 minutes.
+  const { data: existing } = await supabase
+    .from("latest_values")
+    .select("updated_at, value_numeric, value_text, value_bool")
+    .eq("tag_id", tid)
+    .maybeSingle();
+
+  const unchanged =
+    existing &&
+    existing.updated_at === ts &&
+    existing.value_numeric === numeric &&
+    existing.value_text === text &&
+    existing.value_bool === bool;
+
   await supabase.from("latest_values").upsert({
     tag_id: tid, value_numeric: numeric, value_text: text, value_bool: bool, updated_at: ts,
   });
-  await supabase.from("tag_history").insert({
-    time: ts, tag_id: tid, value_numeric: numeric, value_text: text, value_bool: bool,
-  });
+
+  if (!unchanged) {
+    await supabase.from("tag_history").insert({
+      time: ts, tag_id: tid, value_numeric: numeric, value_text: text, value_bool: bool,
+    });
+  }
 }
 
 async function pollOneDevice(conn, device) {
