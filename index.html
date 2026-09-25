@@ -386,6 +386,9 @@
   }
   button.save:disabled { opacity: 0.5; cursor: default; }
   button.save.dirty { background: #d99a2b; }
+
+  /* --- Corvina connections (admin) --- */
+  .conn-form-grid { flex-wrap: wrap; }
 </style>
 </head>
 <body>
@@ -432,6 +435,9 @@
     </button>
     <button class="rail-btn" id="nav-users" title="Manage users" style="display:none;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/><circle cx="10" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </button>
+    <button class="rail-btn" id="nav-settings" title="Corvina connections" style="display:none;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
     </button>
     <div class="rail-spacer"></div>
   </nav>
@@ -530,6 +536,7 @@
     document.getElementById("app-shell").style.display = "flex";
     document.getElementById("whoami").textContent = currentUser.email + (currentUser.role === "admin" ? " (admin)" : "");
     document.getElementById("nav-users").style.display = currentUser.role === "admin" ? "flex" : "none";
+    document.getElementById("nav-settings").style.display = currentUser.role === "admin" ? "flex" : "none";
     if (!appStarted) {
       appStarted = true;
       goToDevices();
@@ -643,9 +650,18 @@
     loadUsers();
   }
 
+  function goToSettings() {
+    view = "settings";
+    selectedDevice = null;
+    document.getElementById("page-title").textContent = "Corvina Connections";
+    setActiveRail("nav-settings");
+    loadConnections();
+  }
+
   document.getElementById("nav-devices").addEventListener("click", goToDevices);
   document.getElementById("nav-map").addEventListener("click", goToMap);
   document.getElementById("nav-users").addEventListener("click", goToUsers);
+  document.getElementById("nav-settings").addEventListener("click", goToSettings);
 
   // --- Devices view ----------------------------------------------------
   // tags(count) asks PostgREST to embed, per device, how many tags
@@ -1202,6 +1218,114 @@
         });
         if (error) alert("Could not resend that invite.");
         else alert("Invite re-sent.");
+      });
+    });
+  }
+
+  // --- Corvina connections (admin only) -----------------------------------
+  let connectionsData = [];
+
+  async function loadConnections() {
+    setStatus("loading…");
+    try {
+      const { data, error } = await sb
+        .from("corvina_connections")
+        .select("id, name, api_base_url, org_id, org_resource_id, enabled, created_at")
+        .order("created_at");
+      if (error) {
+        if (error.message?.includes("JWT")) { showLogin("Your session ended — please sign in again."); return; }
+        throw error;
+      }
+      connectionsData = data;
+      setStatus(`connected — ${connectionsData.length} connection(s)`);
+      renderConnections();
+    } catch (err) {
+      setStatus("failed to load: " + err.message);
+    }
+  }
+
+  function renderConnections(banner) {
+    const app = document.getElementById("app");
+    const rowsHtml = connectionsData
+      .map(
+        (c) => `<tr>
+          <td>${c.name}</td>
+          <td>${c.org_id}</td>
+          <td>${c.org_resource_id}</td>
+          <td>${c.api_base_url}</td>
+          <td><span class="role-badge ${c.enabled ? "admin" : "viewer"}">${c.enabled ? "enabled" : "disabled"}</span></td>
+          <td>
+            <button class="danger-sm" data-toggle-conn="${c.id}" data-enabled="${c.enabled}">${c.enabled ? "Disable" : "Enable"}</button>
+            <button class="danger-sm" data-delete-conn="${c.id}">Delete</button>
+          </td>
+        </tr>`
+      )
+      .join("");
+
+    app.innerHTML = `
+      ${banner ? `<div class="invite-link-box">${banner}</div>` : ""}
+      <div class="section-heading">Add a Corvina Cloud connection</div>
+      <form class="invite-form conn-form-grid" id="connection-form">
+        <div class="field" style="flex:1 1 160px;">
+          <label for="conn-name">Name</label>
+          <input type="text" id="conn-name" placeholder="e.g. C-TORQ" required />
+        </div>
+        <div class="field" style="flex:1 1 220px;">
+          <label for="conn-base-url">API base URL</label>
+          <input type="text" id="conn-base-url" placeholder="https://app.corvina.io" required />
+        </div>
+        <div class="field" style="flex:1 1 220px;">
+          <label for="conn-api-key">API key</label>
+          <input type="password" id="conn-api-key" required />
+        </div>
+        <div class="field" style="flex:0 0 140px;">
+          <label for="conn-org-id">Org ID</label>
+          <input type="text" id="conn-org-id" required />
+        </div>
+        <div class="field" style="flex:1 1 200px;">
+          <label for="conn-org-resource-id">Org resource ID</label>
+          <input type="text" id="conn-org-resource-id" required />
+        </div>
+        <button type="submit" class="primary-sm">Save &amp; connect</button>
+      </form>
+
+      <div class="section-heading">Connected organizations</div>
+      <table>
+        <thead><tr><th>Name</th><th>Org ID</th><th>Org resource ID</th><th>API base URL</th><th>Status</th><th></th></tr></thead>
+        <tbody>${rowsHtml || `<tr><td colspan="6">No connections yet — add one above.</td></tr>`}</tbody>
+      </table>
+      <p class="login-note">The ingestion service polls every enabled connection every ~2 minutes and pulls in its devices and tags automatically.</p>
+    `;
+
+    document.getElementById("connection-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("conn-name").value.trim();
+      const api_base_url = document.getElementById("conn-base-url").value.trim().replace(/\/+$/, "");
+      const api_key = document.getElementById("conn-api-key").value.trim();
+      const org_id = document.getElementById("conn-org-id").value.trim();
+      const org_resource_id = document.getElementById("conn-org-resource-id").value.trim();
+      const { error } = await sb.from("corvina_connections").insert({
+        name, api_base_url, api_key, org_id, org_resource_id, created_by: currentUser.id,
+      });
+      if (error) { alert("Could not save: " + error.message); return; }
+      await loadConnections();
+      renderConnections(`Connected to "${name}". Devices will start appearing within a couple of minutes.`);
+    });
+
+    app.querySelectorAll("[data-toggle-conn]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const enabled = btn.dataset.enabled === "true";
+        const { error } = await sb.from("corvina_connections").update({ enabled: !enabled }).eq("id", btn.dataset.toggleConn);
+        if (error) alert("Could not update: " + error.message);
+        loadConnections();
+      });
+    });
+    app.querySelectorAll("[data-delete-conn]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("Remove this connection? Existing device data is kept, but polling for it will stop.")) return;
+        const { error } = await sb.from("corvina_connections").delete().eq("id", btn.dataset.deleteConn);
+        if (error) alert("Could not delete: " + error.message);
+        loadConnections();
       });
     });
   }
