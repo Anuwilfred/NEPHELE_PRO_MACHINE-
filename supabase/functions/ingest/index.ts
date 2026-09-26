@@ -1,19 +1,31 @@
 // Ingestion, as a Supabase Edge Function.
 //
-// Polls every ENABLED row in the corvina_connections table -- each one is a
-// separate Corvina Cloud organization an admin connected from the app's
-// Settings screen (Devices -> add a connection). pg_cron calls this
-// function every 2 minutes, and each invocation does one pass over every
-// connected organization's devices and tags.
+// Two ways this gets invoked:
 //
-// Concurrency is intentionally modest (a handful of requests in flight at
-// once, not dozens): Corvina's own API rate-limits us with HTTP 429 when we
-// hammer it too hard, and a 429'd request is silently skipped for that
-// cycle -- which is what was causing most tags to sit on a stale value for
-// a long time (some tags simply never won the race to get a slot before
-// the rate limit kicked in). A 429 is now retried a couple of times with a
-// short backoff before giving up, and concurrency is capped low enough that
-// the rate limit shouldn't trigger in the first place.
+// 1. Background sweep (pg_cron, every ~15 minutes): a plain GET/POST with no
+//    device_id. Polls every ENABLED row in corvina_connections -- each one a
+//    separate Corvina Cloud organization connected from the app's Settings
+//    screen -- and every device/tag under it. This is what keeps devices
+//    nobody currently has open "steady": not live, but never stale for more
+//    than ~15 minutes.
+//
+// 2. On-demand single-device poll (called directly from the browser): a GET
+//    with ?device_id=<connectionId>::<rawDeviceId>. Polls just that one
+//    device, right now, with higher concurrency since it isn't competing
+//    with 10 other devices for the same rate-limit budget. The frontend
+//    calls this the moment someone opens a device's tag view, and every ~15s
+//    afterwards while they stay on it, so the device they're actually
+//    looking at feels live. Closing that view stops the on-demand polling
+//    and the device goes back to just the background sweep.
+//
+// Concurrency is intentionally modest on the background sweep (a handful of
+// requests in flight at once, not dozens): Corvina's own API rate-limits us
+// with HTTP 429 when we hammer it too hard, and a 429'd request is silently
+// skipped for that cycle. A 429 is retried a couple of times with a short
+// backoff before giving up. Splitting "background steady" from "on-demand
+// live" is what actually fixes the rate limiting -- previously every cycle
+// tried to pull ALL devices' tags at once regardless of whether anyone was
+// watching, which is what kept tripping Corvina's limiter.
 //
 // Device/tag ids are namespaced with the connection's id ("<connId>::...")
 // so two different organizations' devices never collide, even if Corvina
@@ -25,10 +37,20 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
 // How many Corvina API calls we allow in flight at once, and across how
-// many devices at once. Kept low on purpose -- see note above.
+// many devices at once, during the background sweep. Kept low on purpose --
+// see note above.
 const TAG_FETCH_CONCURRENCY = 4;
 const DEVICE_CONCURRENCY = 2;
 const MAX_RETRIES_ON_RATE_LIMIT = 3;
+
+// The on-demand path only ever polls one device at a time, so it can afford
+// a bit more concurrency without tripping Corvina's limiter.
+const ON_DEMAND_TAG_CONCURRENCY = 6;
+
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, content-type, apikey",
+};
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
@@ -159,7 +181,7 @@ async function writeValue(tid, value, timestampMs) {
   // (the underlying device just hasn't produced a new reading yet). Skip
   // the history insert when it's the exact same reading we already have on
   // record, so tag_history only grows on a genuinely new sample instead of
-  // filling up with identical duplicate rows every 2 minutes.
+  // filling up with identical duplicate rows every cycle.
   const { data: existing } = await supabase
     .from("latest_values")
     .select("updated_at, value_numeric, value_text, value_bool")
@@ -184,13 +206,13 @@ async function writeValue(tid, value, timestampMs) {
   }
 }
 
-async function pollOneDevice(conn, device) {
+async function pollOneDevice(conn, device, tagConcurrency = TAG_FETCH_CONCURRENCY) {
   const rawDeviceId = device.deviceId;
   const deviceName = device.label;
   const deviceId = namespacedDeviceId(conn, rawDeviceId);
   const tags = await listTags(conn, device);
 
-  await mapWithConcurrency(tags, TAG_FETCH_CONCURRENCY, async (tag) => {
+  await mapWithConcurrency(tags, tagConcurrency, async (tag) => {
     const id = tagId(deviceId, tag.path);
     await upsertTag({
       id,
@@ -216,19 +238,23 @@ async function pollOneDevice(conn, device) {
   return tags.length;
 }
 
+async function upsertDeviceFromCorvina(conn, device) {
+  const geo = device.attributes?.geoLocation;
+  const hasFix = Array.isArray(geo) && geo.length >= 2 && !(Math.abs(geo[0]) < 0.01 && Math.abs(geo[1]) < 0.01);
+  await upsertDevice({
+    id: namespacedDeviceId(conn, device.deviceId),
+    name: device.label,
+    online: !!device.connected,
+    geoLat: hasFix ? geo[0] : null,
+    geoLng: hasFix ? geo[1] : null,
+  });
+}
+
 async function pollOnceForConnection(conn) {
   const devices = await listDevices(conn);
 
   await mapWithConcurrency(devices, DEVICE_CONCURRENCY, async (device) => {
-    const geo = device.attributes?.geoLocation;
-    const hasFix = Array.isArray(geo) && geo.length >= 2 && !(Math.abs(geo[0]) < 0.01 && Math.abs(geo[1]) < 0.01);
-    await upsertDevice({
-      id: namespacedDeviceId(conn, device.deviceId),
-      name: device.label,
-      online: !!device.connected,
-      geoLat: hasFix ? geo[0] : null,
-      geoLng: hasFix ? geo[1] : null,
-    });
+    await upsertDeviceFromCorvina(conn, device);
   });
 
   let totalTags = 0;
@@ -239,7 +265,7 @@ async function pollOnceForConnection(conn) {
       console.warn("[" + conn.name + "] Skipping device " + device.label + ":", err.message);
     }
   });
-  console.log("[" + new Date().toISOString() + "] [" + conn.name + "] polled " + devices.length + " device(s), " + totalTags + " tag(s)");
+  console.log("[" + new Date().toISOString() + "] [" + conn.name + "] background sweep: polled " + devices.length + " device(s), " + totalTags + " tag(s)");
 }
 
 async function pollOnce() {
@@ -264,15 +290,48 @@ async function pollOnce() {
   });
 }
 
+// Polls exactly one device, right now, at higher concurrency than the
+// background sweep uses. namespacedId is "<connectionId>::<rawDeviceId>",
+// which is exactly the `devices.id` the frontend already has in hand.
+async function pollDeviceOnDemand(namespacedId) {
+  const sep = namespacedId.indexOf("::");
+  if (sep === -1) throw new Error("device_id must be '<connectionId>::<deviceId>'");
+  const connId = namespacedId.slice(0, sep);
+  const rawDeviceId = namespacedId.slice(sep + 2);
+
+  const { data: conn, error } = await supabase
+    .from("corvina_connections")
+    .select("id, name, api_base_url, api_key, org_id, org_resource_id")
+    .eq("id", connId)
+    .eq("enabled", true)
+    .maybeSingle();
+  if (error || !conn) throw new Error("Unknown or disabled connection: " + connId);
+
+  const devices = await listDevices(conn);
+  const device = devices.find((d) => d.deviceId === rawDeviceId);
+  if (!device) throw new Error("Device " + rawDeviceId + " not found in " + conn.name);
+
+  await upsertDeviceFromCorvina(conn, device);
+  const tagCount = await pollOneDevice(conn, device, ON_DEMAND_TAG_CONCURRENCY);
+  console.log("[" + new Date().toISOString() + "] [" + conn.name + "] on-demand: " + device.label + " -> " + tagCount + " tag(s)");
+  return { ok: true, device: device.label, tags: tagCount };
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, content-type, apikey" } });
+    return new Response("ok", { headers: CORS_HEADERS });
   }
   try {
+    const url = new URL(req.url);
+    const deviceId = url.searchParams.get("device_id");
+    if (deviceId) {
+      const result = await pollDeviceOnDemand(deviceId);
+      return new Response(JSON.stringify(result), { headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
+    }
     await pollOnce();
-    return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
   } catch (err) {
     console.error("Poll failed:", err.message);
-    return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ ok: false, error: err.message }), { status: 500, headers: { "Content-Type": "application/json", ...CORS_HEADERS } });
   }
 });
