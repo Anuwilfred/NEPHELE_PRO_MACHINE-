@@ -27,6 +27,17 @@
 // tried to pull ALL devices' tags at once regardless of whether anyone was
 // watching, which is what kept tripping Corvina's limiter.
 //
+// IMPORTANT: a device returning zero values here is not necessarily a rate
+// limit or a bug -- if Corvina has no historized/logged data for a tag, the
+// tags endpoint returns HTTP 200 with an empty array, not an error. As of
+// 2026-09-26, only the "Tristar" device has any logged tag history in
+// Corvina at all; every other device (DMC_Grid_Converter01-04,
+// Drydock_Grid_Converter*, Esmart10_Cloud2, etc.) returns an empty array for
+// every tag, online or not. That's a Corvina-side data logging/historian
+// configuration issue for those devices/tags, not something this function
+// can fix -- see the project notes for how to confirm and fix it in Corvina
+// Cloud's own device/tag configuration.
+//
 // Device/tag ids are namespaced with the connection's id ("<connId>::...")
 // so two different organizations' devices never collide, even if Corvina
 // reuses the same raw device id across accounts.
@@ -45,7 +56,7 @@ const MAX_RETRIES_ON_RATE_LIMIT = 3;
 
 // The on-demand path only ever polls one device at a time, so it can afford
 // a bit more concurrency without tripping Corvina's limiter.
-const ON_DEMAND_TAG_CONCURRENCY = 6;
+const ON_DEMAND_TAG_CONCURRENCY = 4;
 
 const CORS_HEADERS = {
   "Access-Control-Allow-Origin": "*",
